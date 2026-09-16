@@ -1,3 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Without this a phone lays the page out at 980px and zooms out. The
+     single most important line in the file for anyone scanning the shirt. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#05070d">
+<meta name="description" content="KNUST Computer Science Society. Scan, get breached, get the links.">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="KNUST CSS Uplink">
+<meta property="og:description" content="We're in. Every link for the KNUST Computer Science Society.">
+<meta name="twitter:card" content="summary">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%2305070d'/%3E%3Ctext x='50' y='72' font-family='monospace' font-size='62' font-weight='bold' fill='%234dffa0' text-anchor='middle'%3E%3E_%3C/text%3E%3C/svg%3E">
+
 <title>KNUST CSS Uplink</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -7,30 +25,33 @@
 <style>
 /* ===========================================================================
    KNUST Computer Science Society — UPLINK
-   A page that breaks into your phone, reads it back to you, then admits every
-   website can already do that. Green phosphor throughout.
+   A page that breaks into your device, reads it back to you, then admits every
+   website can already do that.
+
+   Two layouts, one design: on a phone it is a single column of terminal
+   output; on a desktop it becomes a framed CRT window sitting on the desk,
+   because a 460px column stranded in a 1920px void is not a design.
    =========================================================================== */
 
 :root {
   --void: #05070d;          /* near-black, biased blue so it isn't a flat grey */
-  --void-lift: #0a0f1c;
+  --panel: #070b14;
   --phosphor: #4dffa0;
   --phosphor-70: rgba(77, 255, 160, 0.7);
   --phosphor-55: rgba(77, 255, 160, 0.55);
   --phosphor-22: rgba(77, 255, 160, 0.22);
   --phosphor-10: rgba(77, 255, 160, 0.1);
 
-  --amber: #ffb224;         /* warnings, the 89% joke, hazard labels */
-  --red: #ff3b52;           /* breach alarm + glitch channel */
-  --cyan: #3bf0ff;          /* glitch channel */
-  --ink: #3f42d6;           /* the shirt indigo, kept as a deep accent */
+  --amber: #ffb224;
+  --red: #ff3b52;
+  --cyan: #3bf0ff;
 
   --t-micro: 0.625rem;
   --t-tiny: 0.6875rem;
   --t-small: 0.8125rem;
   --t-body: 0.9375rem;
   --t-lead: 1.0625rem;
-  --t-mark: clamp(3.5rem, 21vw, 5.25rem);
+  --t-mark: clamp(3.25rem, 20vw, 4.75rem);
 
   --s-1: 0.25rem;
   --s-2: 0.5rem;
@@ -39,15 +60,28 @@
   --s-5: 1.25rem;
   --s-6: 1.5rem;
   --s-8: 2rem;
+  --s-10: 2.5rem;
 
   --hair: 1px;
   --rule: 2px;
 
+  --gutter: 1.25rem;
+
   color-scheme: dark;
 }
 
-/* One committed visual world — a terminal — so it holds its own palette on any
-   host ground rather than following the viewer's theme. */
+/* Desktop is read from further away, so the whole scale steps up. */
+@media (min-width: 900px) {
+  :root {
+    --t-micro: 0.6875rem;
+    --t-tiny: 0.75rem;
+    --t-small: 0.875rem;
+    --t-body: 1rem;
+    --t-lead: 1.375rem;
+    --t-mark: 6rem;
+    --gutter: 2rem;
+  }
+}
 
 * { box-sizing: border-box; }
 
@@ -68,20 +102,16 @@ a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 
 ::selection { background: var(--phosphor); color: var(--void); }
+:focus-visible { outline: var(--rule) solid var(--phosphor); outline-offset: 3px; }
 
-:focus-visible {
-  outline: var(--rule) solid var(--phosphor);
-  outline-offset: 3px;
-}
-
-/* --- Screen furniture: scanlines, rolling bar, vignette ------------------- */
+/* --- Screen furniture ----------------------------------------------------- */
 
 .crt {
   position: fixed;
   inset: 0;
   z-index: 90;
   pointer-events: none;
-  overflow: hidden;   /* keeps the rolling bar from extending the document */
+  overflow: hidden;   /* stops the rolling bar extending the document */
 }
 
 .crt::before {
@@ -89,10 +119,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   position: absolute;
   inset: 0;
   background: repeating-linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.032) 0 1px,
-    transparent 1px 3px
-  );
+    to bottom, rgba(255, 255, 255, 0.032) 0 1px, transparent 1px 3px);
 }
 
 .crt::after {
@@ -104,17 +131,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 .roll {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 0; right: 0;
   height: 140px;
-  z-index: 91;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(77, 255, 160, 0.045),
-    transparent
-  );
+  background: linear-gradient(to bottom, transparent, rgba(77, 255, 160, 0.045), transparent);
   animation: roll 7.5s linear infinite;
 }
 
@@ -123,14 +142,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   to   { transform: translateY(100vh); }
 }
 
-/* --- Glitch text ----------------------------------------------------------
-   Two clipped copies in the red and cyan channels, offset. The element needs
-   data-text set to the same string. */
+/* --- Glitch --------------------------------------------------------------- */
 
 .glitch { position: relative; display: inline-block; }
 
-.glitch::before,
-.glitch::after {
+.glitch::before, .glitch::after {
   content: attr(data-text);
   position: absolute;
   inset: 0;
@@ -144,14 +160,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .glitch.on::before {
   opacity: 0.85;
   transform: translate(-2px, -1px);
-  clip-path: inset(12% 0 58% 0);
   animation: tear 240ms steps(2, end) infinite;
 }
 
 .glitch.on::after {
   opacity: 0.85;
   transform: translate(2px, 1px);
-  clip-path: inset(62% 0 8% 0);
   animation: tear 190ms steps(2, end) reverse infinite;
 }
 
@@ -173,7 +187,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 @keyframes blink { 50% { opacity: 0; } }
 
 /* ===========================================================================
-   GATE — also the gesture that lets audio start
+   GATE
    =========================================================================== */
 
 #gate {
@@ -195,17 +209,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   text-transform: uppercase;
   color: var(--phosphor);
   border: var(--rule) solid var(--phosphor-22);
-  padding: var(--s-4) var(--s-5);
+  padding: var(--s-4) var(--s-6);
   transition: background 140ms linear, border-color 140ms linear, color 140ms linear;
   animation: pulse 2.1s ease-in-out infinite;
 }
 
-.gate-btn:hover {
-  background: var(--phosphor);
-  border-color: var(--phosphor);
-  color: var(--void);
-  animation: none;
-}
+.gate-btn:hover { background: var(--phosphor); border-color: var(--phosphor); color: var(--void); animation: none; }
 
 @keyframes pulse { 50% { border-color: var(--phosphor); } }
 
@@ -214,12 +223,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--phosphor-55);
-  max-width: 34ch;
+  max-width: 36ch;
   line-height: 1.7;
 }
 
 /* ===========================================================================
-   BREACH — the running console
+   BREACH
    =========================================================================== */
 
 #breach {
@@ -228,9 +237,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   z-index: 99;
   background: var(--void);
   display: none;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: var(--s-4);
-  padding: var(--s-6) var(--s-5) var(--s-5);
+  padding: var(--s-6) var(--gutter) var(--s-5);
   overflow: hidden;
   transform-origin: center center;
 }
@@ -239,28 +248,27 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 .console {
   align-self: end;
+  width: 100%;
+  max-width: 60ch;
+  margin-inline: auto;
+  min-width: 0;
   font-size: var(--t-tiny);
   line-height: 1.9;
-  max-width: 46ch;
-  width: 100%;
-  min-width: 0;
+  overflow-y: auto;
+  max-height: 100%;
 }
 
-.line {
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.9em;
-}
+.line { white-space: pre-wrap; word-break: break-word; min-height: 1.9em; }
 
-.line.ok    { color: var(--phosphor); }
-.line.warn  { color: var(--amber); }
-.line.bad   { color: var(--red); }
-.line.dim   { color: var(--phosphor-55); }
+.line.ok   { color: var(--phosphor); }
+.line.warn { color: var(--amber); }
+.line.bad  { color: var(--red); }
+.line.dim  { color: var(--phosphor-55); }
 
 .shout {
   font-family: "Chakra Petch", system-ui, sans-serif;
   font-weight: 700;
-  font-size: clamp(1.75rem, 9vw, 2.75rem);
+  font-size: clamp(1.75rem, 8vw, 3.25rem);
   line-height: 1.05;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -269,7 +277,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 .shout.bad { color: var(--red); }
 
-.breach-foot { display: grid; gap: var(--s-3); }
+.breach-foot {
+  display: grid;
+  gap: var(--s-3);
+  width: 100%;
+  max-width: 60ch;
+  margin-inline: auto;
+}
 
 .meter {
   display: grid;
@@ -281,19 +295,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 .meter > * { min-width: 0; }
-
-.meter-track {
-  height: 14px;
-  border: var(--hair) solid var(--phosphor-22);
-  padding: 2px;
-}
+.meter-track { height: 14px; border: var(--hair) solid var(--phosphor-22); padding: 2px; }
 
 .meter-fill {
   height: 100%;
   width: 0%;
-  background-image: repeating-linear-gradient(
-    to right, var(--phosphor) 0 7px, transparent 7px 10px
-  );
+  background-image: repeating-linear-gradient(to right, var(--phosphor) 0 7px, transparent 7px 10px);
 }
 
 .meter-read { font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -313,27 +320,41 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .skip:hover { color: var(--phosphor); }
 
 /* ===========================================================================
-   PAYLOAD — the resting state
+   STAGE + FRAME
+   Phone: a plain column. Desktop: a terminal window on the desk.
    =========================================================================== */
 
-.payload {
+.stage {
   position: relative;
   z-index: 2;
-  max-width: 460px;
-  width: 100%;
-  margin-inline: auto;
-  padding: var(--s-8) var(--s-5) var(--s-8);
   min-height: 100svh;
   display: grid;
   align-content: start;
-  gap: var(--s-6);
+  padding: var(--s-6) var(--gutter) var(--s-8);
 }
 
-/* Grid children default to min-width:auto and shove the layout past the
-   screen edge; every track is pinned to zero. */
-.payload > *,
-.row > *,
-.primary > * { min-width: 0; }
+.frame {
+  width: 100%;
+  max-width: 460px;
+  margin-inline: auto;
+  display: grid;
+  align-content: start;
+  gap: var(--s-6);
+  min-width: 0;
+}
+
+.frame > *, .col > *, .row > *, .primary > * { min-width: 0; }
+
+/* The window chrome only exists once there is a window to draw. */
+.frame-bar { display: none; }
+
+/* On a phone the two column groups simply stack, so they need the gap here;
+   desktop replaces this with the two-up grid below. */
+.frame-body { display: grid; gap: var(--s-6); min-width: 0; }
+
+.col { display: grid; align-content: start; gap: var(--s-6); min-width: 0; }
+
+/* --- Identity ------------------------------------------------------------- */
 
 .tag {
   display: flex;
@@ -379,27 +400,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* --- Definition ----------------------------------------------------------- */
 
-.define {
-  border-block-start: var(--rule) solid var(--phosphor-22);
-  padding-block-start: var(--s-4);
-}
+.define { border-block-start: var(--rule) solid var(--phosphor-22); padding-block-start: var(--s-4); }
 
-.define dt {
-  font-family: "Chakra Petch", system-ui, sans-serif;
-  font-weight: 600;
-  font-size: var(--t-body);
-}
+.define dt { font-family: "Chakra Petch", system-ui, sans-serif; font-weight: 600; font-size: var(--t-body); }
+.define dd { margin-inline-start: 0; margin-block-start: var(--s-1); max-width: 54ch; }
 
-.define dd { margin-inline-start: 0; margin-block-start: var(--s-1); max-width: 52ch; }
-
-.phonetic, .pos {
-  display: block;
-  font-size: var(--t-tiny);
-  color: var(--phosphor-55);
-}
-
+.phonetic, .pos { display: block; font-size: var(--t-tiny); color: var(--phosphor-55); }
 .pos { font-style: italic; margin-block: var(--s-2) var(--s-1); }
-
 .define .body { color: var(--phosphor-70); line-height: 1.65; }
 
 /* --- Links ---------------------------------------------------------------- */
@@ -410,6 +417,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   gap: var(--s-2);
   font-size: var(--t-tiny);
   color: var(--phosphor-55);
+  margin-block-end: var(--s-3);
 }
 
 .prompt b { font-weight: 500; color: var(--phosphor); }
@@ -459,13 +467,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 .row .sigil { color: var(--phosphor-55); transition: color 120ms linear; }
-
-.row .cmd {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
+.row .cmd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row .cmd b { font-weight: 700; }
 
 .row .go {
@@ -499,7 +501,7 @@ a.row:hover .go { transform: translateX(3px); }
   white-space: nowrap;
 }
 
-/* --- Hazard labels, straight off the back of the shirt -------------------- */
+/* --- Hazard labels -------------------------------------------------------- */
 
 .hazards {
   display: grid;
@@ -521,12 +523,7 @@ a.row:hover .go { transform: translateX(3px); }
 }
 
 .hazard-box svg { width: 56%; height: 56%; display: block; }
-
-.hazard-label {
-  font-size: var(--t-micro);
-  line-height: 1.25;
-  color: var(--phosphor-55);
-}
+.hazard-label { font-size: var(--t-micro); line-height: 1.25; color: var(--phosphor-55); }
 
 /* --- Foot ----------------------------------------------------------------- */
 
@@ -560,7 +557,7 @@ a.row:hover .go { transform: translateX(3px); }
 
 .replay:hover { color: var(--phosphor); border-color: var(--phosphor); }
 
-/* --- Sound toggle, fixed so it is reachable during the breach ------------- */
+/* --- Sound ---------------------------------------------------------------- */
 
 .sound {
   position: fixed;
@@ -583,10 +580,78 @@ a.row:hover .go { transform: translateX(3px); }
 .sound:hover { color: var(--phosphor); border-color: var(--phosphor); }
 .sound svg { width: 13px; height: 13px; display: block; }
 
+/* ===========================================================================
+   DESKTOP — the frame becomes an actual terminal window
+   =========================================================================== */
+
+@media (min-width: 900px) {
+  .stage { align-content: center; padding-block: var(--s-10); }
+
+  .frame {
+    max-width: 1020px;
+    gap: 0;
+    border: var(--hair) solid var(--phosphor-22);
+    background: var(--panel);
+    box-shadow: 0 0 80px rgba(77, 255, 160, 0.06), 0 40px 90px rgba(0, 0, 0, 0.6);
+  }
+
+  .frame-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-5);
+    border-block-end: var(--hair) solid var(--phosphor-22);
+    font-size: var(--t-micro);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--phosphor-55);
+  }
+
+  .frame-bar .dots { display: flex; gap: 6px; }
+
+  .frame-bar .dots i {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--phosphor-22);
+    display: block;
+  }
+
+  .frame-bar .dots i:first-child { background: var(--red); opacity: 0.7; }
+  .frame-bar .dots i:nth-child(2) { background: var(--amber); opacity: 0.7; }
+  .frame-bar .dots i:last-child { background: var(--phosphor); opacity: 0.7; }
+
+  .frame-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s-10);
+    padding: var(--s-10);
+    align-items: start;
+  }
+
+  .frame-foot { padding: 0 var(--s-10) var(--s-8); }
+
+  /* The rule above the footer already separates it; drop the doubled one. */
+  .frame-foot .foot { border-block-start: none; padding-block-start: 0; }
+
+  .define dd { max-width: 46ch; }
+
+  /* Two rows of two reads better beside a column of links than one row of
+     four squeezed to a third of the window. */
+  .hazards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 900px) and (max-width: 1100px) {
+  .frame-body { gap: var(--s-8); padding: var(--s-8); }
+  .frame-foot { padding: 0 var(--s-8) var(--s-6); }
+}
+
+/* --- Small phones --------------------------------------------------------- */
+
 @media (max-width: 380px) {
-  .payload { padding-inline: var(--s-4); }
+  :root { --gutter: 1rem; }
   .hazards { gap: var(--s-1); }
   .hazard-label { font-size: 9px; }
+  .sound { padding: var(--s-1) var(--s-2); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -596,6 +661,9 @@ a.row:hover .go { transform: translateX(3px); }
 }
 </style>
 
+</head>
+<body>
+
 <div class="crt" aria-hidden="true">
   <div class="roll"></div>
 </div>
@@ -604,20 +672,18 @@ a.row:hover .go { transform: translateX(3px); }
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <polygon points="4,9 8,9 13,5 13,19 8,15 4,15" fill="currentColor" stroke="none"/>
-    <path d="M17 9.5a4 4 0 0 1 0 5" class="wave1"/>
-    <path d="M19.5 7a7.5 7.5 0 0 1 0 10" class="wave2"/>
+    <path d="M17 9.5a4 4 0 0 1 0 5"/>
+    <path d="M19.5 7a7.5 7.5 0 0 1 0 10"/>
   </svg>
   <span id="soundLabel">Sound</span>
 </button>
 
-<!-- Gate. Doubles as the gesture the browser needs before audio can start. -->
 <div id="gate">
   <p class="gate-note">Incoming connection from an unidentified garment</p>
   <button type="button" class="gate-btn" id="gateBtn">Establish uplink</button>
   <p class="gate-note">Sound on. Mute top-right at any time.</p>
 </div>
 
-<!-- Breach console -->
 <div id="breach" role="status" aria-live="polite" aria-label="Establishing connection">
   <div class="console" id="console"></div>
   <div class="breach-foot">
@@ -629,90 +695,106 @@ a.row:hover .go { transform: translateX(3px); }
   </div>
 </div>
 
-<!-- Payload -->
-<main class="payload" id="payload">
-  <header>
-    <p class="tag">Connection secure<span class="cursor"></span></p>
-    <h1 class="mark glitch" id="markEl" data-text="CSS">CSS</h1>
-    <p class="society">Computer Science Society</p>
-    <p class="school">Kwame Nkrumah University of Science &amp; Technology</p>
-  </header>
+<main class="stage" id="stage">
+  <div class="frame">
 
-  <dl class="define">
-    <div>
-      <dt>Computer Science.</dt>
-      <dd>
-        <span class="phonetic">[kom-pyoo-tuh sy-ens]</span>
-        <span class="pos">noun</span>
-        <span class="body">An extraordinary field where ideas become algorithms,
-        algorithms become systems, and systems quietly run the world while
-        everyone sleeps.</span>
-      </dd>
+    <div class="frame-bar reveal" aria-hidden="true">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span>root@knust-css:~/uplink</span>
     </div>
-  </dl>
 
-  <section aria-label="Links">
-    <p class="prompt"><b>root@knust-css</b>:~$ ls ./links</p>
-    <a class="primary" id="joinLink" href="#" target="_blank" rel="noopener noreferrer">
-      <span>Join the society</span>
-      <span class="go" aria-hidden="true">&rarr;</span>
-    </a>
-    <ul class="links" id="linkList"></ul>
-  </section>
+    <div class="frame-body">
+      <div class="col">
+        <header class="reveal">
+          <p class="tag">Connection secure<span class="cursor"></span></p>
+          <h1 class="mark glitch" id="markEl" data-text="CSS">CSS</h1>
+          <p class="society">Computer Science Society</p>
+          <p class="school">Kwame Nkrumah University of Science &amp; Technology</p>
+        </header>
 
-  <section class="hazards" aria-label="Warning labels">
-    <div class="hazard">
-      <div class="hazard-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 2.5c2.4 3.4 1 5.2-.4 6.8-1.6 1.9-2.6 3.2-2.6 5.2a3 3 0 0 0 6 0c0-1-.3-1.8-.8-2.6 2 1.2 3.3 3.2 3.3 5.6a5.5 5.5 0 0 1-11 0c0-4.6 4-6.4 5.5-15z"/>
-        </svg>
-      </div>
-      <p class="hazard-label">May contain sarcasm</p>
-    </div>
-    <div class="hazard">
-      <div class="hazard-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="8.5,7.5 3.5,12 8.5,16.5"/>
-          <polyline points="15.5,7.5 20.5,12 15.5,16.5"/>
-          <line x1="13.4" y1="5" x2="10.6" y2="19"/>
-        </svg>
-      </div>
-      <p class="hazard-label">Code ranting outbursts</p>
-    </div>
-    <div class="hazard">
-      <div class="hazard-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="2.5,11 12,4 21.5,11"/>
-          <path d="M5.5 12.5V20h13v-7.5"/>
-          <circle cx="12" cy="15" r="1.6"/>
-          <path d="M9.4 20c0-1.6 1.2-2.7 2.6-2.7s2.6 1.1 2.6 2.7"/>
-        </svg>
-      </div>
-      <p class="hazard-label">Shelter from sunlight</p>
-    </div>
-    <div class="hazard">
-      <div class="hazard-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M4 8h12v6.5a4.5 4.5 0 0 1-4.5 4.5h-3A4.5 4.5 0 0 1 4 14.5z"/>
-          <path d="M16 9.5h1.8a2.6 2.6 0 0 1 0 5.2H16"/>
-          <line x1="10" y1="10.5" x2="10" y2="13.5"/>
-          <line x1="10" y1="15.8" x2="10" y2="15.9"/>
-        </svg>
-      </div>
-      <p class="hazard-label">Dangerous caffeine levels</p>
-    </div>
-  </section>
+        <dl class="define reveal">
+          <div>
+            <dt>Computer Science.</dt>
+            <dd>
+              <span class="phonetic">[kom-pyoo-tuh sy-ens]</span>
+              <span class="pos">noun</span>
+              <span class="body">An extraordinary field where ideas become algorithms,
+              algorithms become systems, and systems quietly run the world while
+              everyone sleeps.</span>
+            </dd>
+          </div>
+        </dl>
 
-  <footer class="foot">
-    <div class="foot-row">
-      <span>It works on our machine</span>
-      <button type="button" class="replay" id="replayBtn">Run the breach again</button>
+        <section class="hazards reveal" aria-label="Warning labels">
+          <div class="hazard">
+            <div class="hazard-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2.5c2.4 3.4 1 5.2-.4 6.8-1.6 1.9-2.6 3.2-2.6 5.2a3 3 0 0 0 6 0c0-1-.3-1.8-.8-2.6 2 1.2 3.3 3.2 3.3 5.6a5.5 5.5 0 0 1-11 0c0-4.6 4-6.4 5.5-15z"/>
+              </svg>
+            </div>
+            <p class="hazard-label">May contain sarcasm</p>
+          </div>
+          <div class="hazard">
+            <div class="hazard-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="8.5,7.5 3.5,12 8.5,16.5"/>
+                <polyline points="15.5,7.5 20.5,12 15.5,16.5"/>
+                <line x1="13.4" y1="5" x2="10.6" y2="19"/>
+              </svg>
+            </div>
+            <p class="hazard-label">Code ranting outbursts</p>
+          </div>
+          <div class="hazard">
+            <div class="hazard-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="2.5,11 12,4 21.5,11"/>
+                <path d="M5.5 12.5V20h13v-7.5"/>
+                <circle cx="12" cy="15" r="1.6"/>
+                <path d="M9.4 20c0-1.6 1.2-2.7 2.6-2.7s2.6 1.1 2.6 2.7"/>
+              </svg>
+            </div>
+            <p class="hazard-label">Shelter from sunlight</p>
+          </div>
+          <div class="hazard">
+            <div class="hazard-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 8h12v6.5a4.5 4.5 0 0 1-4.5 4.5h-3A4.5 4.5 0 0 1 4 14.5z"/>
+                <path d="M16 9.5h1.8a2.6 2.6 0 0 1 0 5.2H16"/>
+                <line x1="10" y1="10.5" x2="10" y2="13.5"/>
+                <line x1="10" y1="15.8" x2="10" y2="15.9"/>
+              </svg>
+            </div>
+            <p class="hazard-label">Dangerous caffeine levels</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="col">
+        <section class="reveal" aria-label="Links">
+          <p class="prompt"><b>root@knust-css</b>:~$ ls ./links</p>
+          <a class="primary" id="joinLink" href="#" target="_blank" rel="noopener noreferrer">
+            <span>Join the society</span>
+            <span class="go" aria-hidden="true">&rarr;</span>
+          </a>
+          <ul class="links" id="linkList"></ul>
+        </section>
+      </div>
     </div>
-  </footer>
+
+    <div class="frame-foot reveal">
+      <footer class="foot">
+        <div class="foot-row">
+          <span>It works on our machine</span>
+          <button type="button" class="replay" id="replayBtn">Run the breach again</button>
+        </div>
+      </footer>
+    </div>
+
+  </div>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
@@ -742,7 +824,8 @@ const LINKS = [
 const $ = (id) => document.getElementById(id);
 const gate = $("gate"), breach = $("breach"), consoleEl = $("console");
 const meterFill = $("meterFill"), meterRead = $("meterRead");
-const payload = $("payload"), markEl = $("markEl");
+const stage = $("stage"), markEl = $("markEl");
+const reveals = document.querySelectorAll(".reveal");
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* --- Links ---------------------------------------------------------------- */
@@ -766,7 +849,7 @@ $("linkList").innerHTML = LINKS.map((l) => {
 }).join("");
 
 /* ===========================================================================
-   AUDIO — everything synthesised, nothing fetched.
+   AUDIO — synthesised, nothing fetched
    =========================================================================== */
 
 let ctx = null, master = null, droneNodes = null;
@@ -795,12 +878,9 @@ function tone(freq, dur, type = "square", vol = 1) {
   o.start(); o.stop(ctx.currentTime + dur + 0.02);
 }
 
-/** Keystroke. Tiny, pitched randomly so a run of them sounds mechanical. */
 function blip() { tone(1100 + Math.random() * 700, 0.016, "square", 0.22); }
-
 function beep(freq = 880, dur = 0.09) { tone(freq, dur, "square", 0.5); }
 
-/** Static burst for glitches and the breach hit. */
 function noise(dur = 0.16, vol = 0.5) {
   if (!ctx || muted) return;
   const n = Math.floor(ctx.sampleRate * dur);
@@ -814,7 +894,6 @@ function noise(dur = 0.16, vol = 0.5) {
   src.start();
 }
 
-/** Rising sweep, used while the device is being read. */
 function sweep(from = 220, to = 1800, dur = 0.5) {
   if (!ctx || muted) return;
   const o = ctx.createOscillator(), g = ctx.createGain();
@@ -827,10 +906,10 @@ function sweep(from = 220, to = 1800, dur = 0.5) {
   o.start(); o.stop(ctx.currentTime + dur + 0.02);
 }
 
-/** Low hum under the whole breach. */
 function droneStart() {
   if (!ctx || droneNodes) return;
-  const o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  const lfo = ctx.createOscillator(), lg = ctx.createGain();
   o.type = "sawtooth"; o.frequency.value = 55;
   g.gain.value = 0.055;
   lfo.frequency.value = 0.35; lg.gain.value = 5;
@@ -850,7 +929,6 @@ function droneStop() {
   droneNodes = null;
 }
 
-/* Sound toggle */
 const soundBtn = $("soundBtn"), soundLabel = $("soundLabel");
 function paintSound() {
   soundBtn.setAttribute("aria-pressed", String(!muted));
@@ -869,16 +947,16 @@ soundBtn.addEventListener("click", () => {
 
 /* ===========================================================================
    DEVICE PROBE
-   Everything here is handed out by the browser to every site you open. No
-   permission prompts, no camera, no location — that is the whole joke.
+   Everything here is handed to every website you open. No permission prompts,
+   no camera, no location — that is the whole joke.
    =========================================================================== */
 
 async function probe() {
   const nav = navigator;
   const out = [];
   const push = (k, v) => out.push([k, v == null || v === "" ? "[redacted]" : String(v)]);
-
   const ua = nav.userAgent;
+
   const brand =
     /Edg\//.test(ua) ? "Edge" :
     /OPR\//.test(ua) ? "Opera" :
@@ -907,7 +985,6 @@ async function probe() {
   const c = nav.connection || nav.mozConnection || nav.webkitConnection;
   push("uplink", c ? (c.effectiveType || "?") + (c.downlink ? "  /  " + c.downlink + " Mbps" : "") : "[redacted]");
 
-  // GPU string, where the browser has not masked it.
   let gpu = "[redacted]";
   try {
     const cv = document.createElement("canvas");
@@ -915,11 +992,10 @@ async function probe() {
     const dbg = gl && gl.getExtension("WEBGL_debug_renderer_info");
     if (dbg) gpu = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
   } catch (e) {}
-  push("gpu", String(gpu).slice(0, 34));
+  push("gpu", String(gpu).replace(/^ANGLE \(/, "").slice(0, 38));
 
   push("touch", nav.maxTouchPoints > 0 ? "yes  /  " + nav.maxTouchPoints + " points" : "no");
 
-  // Battery is gone from most desktop browsers; guarded and optional.
   try {
     if (nav.getBattery) {
       const b = await nav.getBattery();
@@ -932,7 +1008,7 @@ async function probe() {
 }
 
 /* ===========================================================================
-   THE SEQUENCE
+   SEQUENCE
    =========================================================================== */
 
 let aborted = false;
@@ -942,7 +1018,6 @@ function addLine(cls) {
   const el = document.createElement("div");
   el.className = "line" + (cls ? " " + cls : "");
   consoleEl.appendChild(el);
-  // Keep the newest line in view on short screens.
   consoleEl.scrollTop = consoleEl.scrollHeight;
   return el;
 }
@@ -954,6 +1029,7 @@ async function type(el, text, speed = 16, click = true) {
     if (click && i % 2 === 0) blip();
     await wait(speed);
   }
+  consoleEl.scrollTop = consoleEl.scrollHeight;
 }
 
 function flash(color, ms = 70) {
@@ -964,9 +1040,7 @@ function flash(color, ms = 70) {
 
 function shake(px = 8) {
   if (reduced || !window.gsap) return;
-  gsap.fromTo(breach,
-    { x: -px },
-    { x: 0, duration: 0.45, ease: "elastic.out(1.6, 0.35)" });
+  gsap.fromTo(breach, { x: -px }, { x: 0, duration: 0.45, ease: "elastic.out(1.6, 0.35)" });
 }
 
 async function meterTo(target, dur, tired) {
@@ -989,16 +1063,14 @@ async function runBreach() {
   meterFill.style.width = "0%";
   meterRead.innerHTML = "<b>0</b>%";
   gate.style.display = "none";
-  payload.style.visibility = "hidden";
+  stage.style.visibility = "hidden";
   breach.classList.add("live");
   document.body.style.overflow = "hidden";
 
   audioUp();
   droneStart();
-
   gsap.to($("skipBtn"), { opacity: 1, duration: 0.4, delay: 0.9 });
 
-  // --- Handshake ---------------------------------------------------------
   await type(addLine("dim"), "> establishing uplink from garment ....", 14);
   await wait(120);
   await type(addLine("ok"), "[ ok ] handshake accepted", 12);
@@ -1007,15 +1079,13 @@ async function runBreach() {
   await type(addLine("warn"), "[warn] no credentials required. none.", 12);
   await meterTo(34, 420, false);
 
-  // --- The line -----------------------------------------------------------
   if (!aborted) { noise(0.22, 0.6); flash("#1a0008", 90); shake(10); }
   const shout = document.createElement("p");
   shout.className = "shout bad glitch";
+  shout.setAttribute("data-text", "WE'RE IN.");
   consoleEl.appendChild(shout);
-  const breachText = "WE'RE IN.";
-  shout.setAttribute("data-text", breachText);
   if (!reduced) shout.classList.add("on");
-  await type(shout, breachText, 42, false);
+  await type(shout, "WE'RE IN.", 42, false);
   beep(160, 0.3);
   await wait(320);
 
@@ -1023,24 +1093,23 @@ async function runBreach() {
   sweep(180, 1600, 0.6);
   await meterTo(62, 420, false);
 
-  // --- The actual read ----------------------------------------------------
   await type(addLine("dim"), "> target acquired. dumping:", 12);
   const rows = await probe();
   for (const [k, v] of rows) {
     if (aborted) break;
     const el = addLine("ok");
-    const pad = (k + " ").padEnd(11, ".");
-    await type(el, "  " + pad + " " + v, 7);
+    await type(el, "  " + (k + " ").padEnd(11, ".") + " " + v, 7);
     beep(1250 + Math.random() * 350, 0.022);
   }
 
   await meterTo(89, 380, true);
-  if (!aborted) { for (let i = 0; i < 5; i++) { meterRead.style.opacity = i % 2 ? "1" : "0.3"; await wait(70); } }
+  if (!aborted) {
+    for (let i = 0; i < 5; i++) { meterRead.style.opacity = i % 2 ? "1" : "0.3"; await wait(70); }
+  }
   meterRead.style.opacity = "1";
   await meterTo(100, 200, false);
   beep(1320, 0.12);
 
-  // --- The punchline ------------------------------------------------------
   await wait(260);
   if (!aborted) { noise(0.12, 0.35); flash("#001a0d", 60); }
   const relax = document.createElement("p");
@@ -1071,23 +1140,22 @@ function finish() {
 function land() {
   breach.classList.remove("live");
   breach.style.cssText = "";
-  payload.style.visibility = "";
+  stage.style.visibility = "";
   document.body.style.overflow = "";
   beep(760, 0.07);
   setTimeout(() => beep(1140, 0.09), 90);
 
   if (!reduced && window.gsap) {
-    gsap.fromTo(payload.children,
+    gsap.fromTo(reveals,
       { opacity: 0, y: 14 },
-      { opacity: 1, y: 0, duration: 0.5, stagger: 0.05, ease: "expo.out", clearProps: "transform" });
+      { opacity: 1, y: 0, duration: 0.5, stagger: 0.06, ease: "expo.out", clearProps: "transform" });
     markEl.classList.add("on");
     setTimeout(() => markEl.classList.remove("on"), 420);
     ambient();
   }
 }
 
-/* Occasional one-off glitch on the wordmark, so the page never feels settled.
-   Deliberately rare — it is punctuation, not wallpaper. */
+/* Rare one-off glitch on the wordmark. Punctuation, not wallpaper. */
 let ambientTimer = null;
 function ambient() {
   clearTimeout(ambientTimer);
@@ -1102,13 +1170,11 @@ function ambient() {
 
 /* --- Wiring --------------------------------------------------------------- */
 
-function skip() {
-  if (!aborted) { aborted = true; }
-}
+function skip() { aborted = true; }
 
 $("skipBtn").addEventListener("click", (e) => { e.stopPropagation(); skip(); });
 breach.addEventListener("click", skip);
-window.addEventListener("keydown", (e) => { if (breach.classList.contains("live")) skip(); });
+window.addEventListener("keydown", () => { if (breach.classList.contains("live")) skip(); });
 
 $("gateBtn").addEventListener("click", () => { audioUp(); runBreach(); });
 
@@ -1119,11 +1185,13 @@ $("replayBtn").addEventListener("click", () => {
   runBreach();
 });
 
-/* Reduced motion, or GSAP never arrived: skip the theatre entirely. */
 if (reduced || !window.gsap) {
   gate.style.display = "none";
-  payload.style.visibility = "";
+  stage.style.visibility = "";
 } else {
-  payload.style.visibility = "hidden";
+  stage.style.visibility = "hidden";
 }
 </script>
+
+</body>
+</html>
