@@ -581,6 +581,91 @@ a.row:hover .go { transform: translateX(3px); }
 .sound svg { width: 13px; height: 13px; display: block; }
 
 /* ===========================================================================
+   RAIN — ambient backdrop. Texture, not decoration: it sits at 0.1 alpha
+   behind everything and stops entirely when the tab is hidden.
+   =========================================================================== */
+
+#rain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.1;
+}
+
+/* ===========================================================================
+   SHELL — a real prompt. The links are tappable for everyone; this is for the
+   people who will try `sudo` just to see what happens.
+   =========================================================================== */
+
+.shell {
+  border: var(--hair) solid var(--phosphor-22);
+  background: rgba(3, 5, 10, 0.72);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 158px;
+}
+
+.shell-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-block-end: var(--hair) solid var(--phosphor-10);
+  font-size: var(--t-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--phosphor-55);
+}
+
+.shell-out {
+  overflow-y: auto;
+  padding: var(--s-3);
+  font-size: var(--t-tiny);
+  line-height: 1.75;
+  max-height: 152px;
+  min-height: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.shell-out .said { color: var(--phosphor); }
+.shell-out .said b { color: var(--phosphor-55); font-weight: 400; }
+.shell-out .err { color: var(--red); }
+.shell-out .hint { color: var(--phosphor-55); }
+.shell-out .art { color: var(--phosphor); line-height: 1.25; }
+
+.shell-in {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-block-start: var(--hair) solid var(--phosphor-10);
+  font-size: var(--t-tiny);
+}
+
+.shell-in label { color: var(--phosphor-55); white-space: nowrap; }
+.shell-in label b { color: var(--phosphor); font-weight: 500; }
+
+.shell-in input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  color: var(--phosphor);
+  font: inherit;
+  padding: var(--s-1) 0;
+  caret-color: var(--phosphor);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #rain { display: none; }
+}
+
+/* ===========================================================================
    DESKTOP — the frame becomes an actual terminal window
    =========================================================================== */
 
@@ -663,6 +748,8 @@ a.row:hover .go { transform: translateX(3px); }
 
 </head>
 <body>
+
+<canvas id="rain" aria-hidden="true"></canvas>
 
 <div class="crt" aria-hidden="true">
   <div class="roll"></div>
@@ -781,6 +868,19 @@ a.row:hover .go { transform: translateX(3px); }
             <span class="go" aria-hidden="true">&rarr;</span>
           </a>
           <ul class="links" id="linkList"></ul>
+        </section>
+
+        <section class="shell reveal" aria-label="Terminal">
+          <div class="shell-head">
+            <span>sh &mdash; still open</span>
+            <span>try: neofetch</span>
+          </div>
+          <div class="shell-out" id="shellOut" role="log" aria-live="polite"></div>
+          <form class="shell-in" id="shellForm" autocomplete="off">
+            <label for="shellInput"><b>visitor@knust-css</b>:~$</label>
+            <input id="shellInput" name="cmd" spellcheck="false" autocapitalize="off"
+                   autocorrect="off" aria-label="Type a command">
+          </form>
         </section>
       </div>
     </div>
@@ -1088,6 +1188,7 @@ async function probe() {
    =========================================================================== */
 
 let aborted = false;
+let lastProbe = null;
 const wait = (ms) => new Promise((r) => setTimeout(r, aborted ? 0 : ms));
 
 function addLine(cls) {
@@ -1134,6 +1235,7 @@ async function meterTo(target, dur, tired) {
 }
 
 async function runBreach() {
+  landed = false;
   aborted = false;
   consoleEl.innerHTML = "";
   meterFill.style.width = "0%";
@@ -1146,15 +1248,19 @@ async function runBreach() {
   audioUp();
   droneStart();
   hzPromise = sampleHz();
+
+  // Hard stop. If anything wedges, the page shows up anyway.
+  clearTimeout(watchdog);
+  watchdog = setTimeout(land, 26000);
   gsap.to($("skipBtn"), { opacity: 1, duration: 0.4, delay: 0.9 });
 
-  await type(addLine("dim"), "> establishing uplink from garment ....", 14);
+  await type(addLine("dim"), "> establishing uplink from garment ....", 9);
   await wait(120);
-  await type(addLine("ok"), "[ ok ] handshake accepted", 12);
-  await type(addLine("ok"), "[ ok ] bypassing firewall ......... open", 10);
+  await type(addLine("ok"), "[ ok ] handshake accepted", 8);
+  await type(addLine("ok"), "[ ok ] bypassing firewall ......... open", 7);
   beep(520, 0.07);
-  await type(addLine("warn"), "[warn] no credentials required. none.", 12);
-  await meterTo(34, 420, false);
+  await type(addLine("warn"), "[warn] no credentials required. none.", 8);
+  await meterTo(34, 300, false);
 
   if (!aborted) { noise(0.22, 0.6); flash("#1a0008", 90); shake(10); }
   const shout = document.createElement("p");
@@ -1164,22 +1270,23 @@ async function runBreach() {
   if (!reduced) shout.classList.add("on");
   await type(shout, "WE'RE IN.", 42, false);
   beep(160, 0.3);
-  await wait(320);
+  await wait(240);
 
-  await type(addLine("bad"), "> hacking into your device ...", 16);
+  await type(addLine("bad"), "> hacking into your device ...", 11);
   sweep(180, 1600, 0.6);
-  await meterTo(62, 420, false);
+  await meterTo(62, 300, false);
 
-  await type(addLine("dim"), "> target acquired. dumping:", 12);
+  await type(addLine("dim"), "> target acquired. dumping:", 8);
   const rows = await probe();
+  lastProbe = rows;
   for (const row of rows) {
     if (aborted) break;
     if (row.section) {
-      await type(addLine("warn"), "  [ " + row.section + " ]", 10);
+      await type(addLine("warn"), "  [ " + row.section + " ]", 7);
       continue;
     }
     const el = addLine("ok");
-    await type(el, "  " + (row.k + " ").padEnd(11, ".") + " " + row.v, 6);
+    await type(el, "  " + (row.k + " ").padEnd(11, ".") + " " + row.v, 3);
     beep(1250 + Math.random() * 350, 0.022);
   }
 
@@ -1200,27 +1307,56 @@ async function runBreach() {
   await type(relax, "RELAX.", 60, false);
   await type(addLine("dim"),
     "  every website you open already sees all of that.\n  we just made it theatrical.", 11);
-  await wait(900);
-
-  finish();
+  await wait(700);
 }
 
-function finish() {
-  droneStop();
-  if (!reduced && window.gsap) {
-    noise(0.18, 0.4);
-    gsap.timeline({ onComplete: land })
-      .to(breach, { backgroundColor: "#0d2a1c", duration: 0.06, repeat: 3, yoyo: true })
-      .to(breach, { scaleY: 0.004, duration: 0.28, ease: "power4.in" })
-      .to(breach, { opacity: 0, duration: 0.12 }, ">-0.04");
-  } else {
-    land();
+/** Wrapper so a rejected probe or a network hiccup can never strand anyone. */
+async function play() {
+  try {
+    await runBreach();
+  } catch (err) {
+    // The show failing is not a reason to withhold the links.
+  } finally {
+    finish();
   }
 }
 
+/* Coming back to a tab that stalled mid-collapse should not show a dead line. */
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && !landed && breach.classList.contains("live")
+      && !consoleEl.textContent.trim()) land();
+});
+
+let landed = false;
+let watchdog = null;
+
+function finish() {
+  droneStop();
+  clearTimeout(watchdog);
+
+  if (reduced || !window.gsap) { land(); return; }
+
+  noise(0.18, 0.4);
+  // However this timeline ends -- completed, interrupted, or stalled because
+  // the tab was backgrounded and the ticker stopped -- land() runs. Leaving
+  // someone staring at a collapsed green line is the worst failure this page
+  // has, so it gets a belt, braces and a timer.
+  const tl = gsap.timeline({ onComplete: land, onInterrupt: land });
+  tl.to(breach, { backgroundColor: "#0d2a1c", duration: 0.06, repeat: 3, yoyo: true })
+    .to(breach, { scaleY: 0.004, duration: 0.28, ease: "power4.in" })
+    .to(breach, { opacity: 0, duration: 0.12 }, ">-0.04");
+
+  setTimeout(land, 1600);
+}
+
 function land() {
+  if (landed) return;          // idempotent: every failsafe routes through here
+  landed = true;
+  clearTimeout(watchdog);
+
+  if (window.gsap) gsap.killTweensOf(breach);
   breach.classList.remove("live");
-  breach.style.cssText = "";
+  breach.removeAttribute("style");
   stage.style.visibility = "";
   document.body.style.overflow = "";
   beep(760, 0.07);
@@ -1233,6 +1369,20 @@ function land() {
     markEl.classList.add("on");
     setTimeout(() => markEl.classList.remove("on"), 420);
     ambient();
+
+    // Labels resolve out of noise rather than simply appearing.
+    document.querySelectorAll("#linkList .cmd").forEach(function (el, i) {
+      const text = el.textContent;
+      setTimeout(function () { decrypt(el, text, 420); }, 260 + i * 55);
+    });
+  }
+
+  if (!shellOut.dataset.seeded) {
+    shellOut.dataset.seeded = "1";
+    say("shell still open. the breach never closed it.", "hint");
+    say("type help, or neofetch if you want the flex.", "hint");
+    // Focusing on a phone throws the keyboard up over the links.
+    if (innerWidth >= 900) setTimeout(function () { shellInput.focus(); }, 700);
   }
 }
 
@@ -1249,6 +1399,249 @@ function ambient() {
   ambientTimer = setTimeout(tick, 6000);
 }
 
+
+/* ===========================================================================
+   RAIN
+   =========================================================================== */
+
+function startRain() {
+  if (reduced) return;
+  const cv = document.getElementById("rain");
+  const g = cv.getContext("2d", { alpha: true });
+  if (!g) return;
+
+  const GLYPHS = "01<>{}[]/|=+-*#$&%@abcdefghijklmnopqrstuvwxyz";
+  let cols = [], size = 14, w = 0, h = 0, raf = null;
+
+  function fit() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = cv.width = Math.floor(innerWidth * dpr);
+    h = cv.height = Math.floor(innerHeight * dpr);
+    cv.style.width = innerWidth + "px";
+    cv.style.height = innerHeight + "px";
+    size = Math.floor(14 * dpr);
+    cols = new Array(Math.ceil(w / size)).fill(0).map(() => Math.random() * -60);
+    g.font = size + "px JetBrains Mono, monospace";
+  }
+
+  function frame() {
+    // Painting translucent black over the last frame is what leaves the
+    // trailing tail behind each falling column.
+    g.fillStyle = "rgba(5, 7, 13, 0.09)";
+    g.fillRect(0, 0, w, h);
+    g.fillStyle = "#4dffa0";
+
+    for (let i = 0; i < cols.length; i++) {
+      const y = cols[i] * size;
+      if (y > 0) g.fillText(GLYPHS[(Math.random() * GLYPHS.length) | 0], i * size, y);
+      cols[i] = y > h && Math.random() > 0.975 ? 0 : cols[i] + 1;
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  fit();
+  addEventListener("resize", fit, { passive: true });
+  raf = requestAnimationFrame(frame);
+
+  // Nothing renders while nobody is looking at it.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { cancelAnimationFrame(raf); raf = null; }
+    else if (!raf) raf = requestAnimationFrame(frame);
+  });
+}
+
+/* ===========================================================================
+   DECRYPT — link labels resolve out of noise as they land
+   =========================================================================== */
+
+function decrypt(el, finalText, ms) {
+  if (reduced) { el.textContent = finalText; return; }
+  const junk = "!<>-_/[]{}=+*^?#01";
+  const t0 = performance.now();
+  (function step(now) {
+    const p = Math.min(1, ((now || t0) - t0) / ms);
+    const shown = Math.floor(p * finalText.length);
+    let out = finalText.slice(0, shown);
+    for (let i = shown; i < finalText.length; i++) {
+      out += finalText[i] === " " ? " " : junk[(Math.random() * junk.length) | 0];
+    }
+    el.textContent = out;
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = finalText;
+  })(t0);
+}
+
+/* ===========================================================================
+   SHELL — a prompt that actually works
+   =========================================================================== */
+
+const shellOut = $("shellOut");
+const shellForm = $("shellForm");
+const shellInput = $("shellInput");
+const cmdHistory = [];
+let histIdx = -1;
+
+function say(text, cls) {
+  const el = document.createElement("div");
+  if (cls) el.className = cls;
+  el.textContent = text;
+  shellOut.appendChild(el);
+  shellOut.scrollTop = shellOut.scrollHeight;
+  return el;
+}
+
+const BIG_ART = [
+  "  /---\\ /---\\ /---\\",
+  " |     |     |     ",
+  " |     \\---\\ \\---\\",
+  " |          |     |",
+  "  \\---/ \\---/ \\---/",
+];
+
+const SMALL_ART = [
+  " ,-. ,-. ,-.",
+  " |   `-. `-.",
+  " `-' `-' `-'",
+];
+
+const COMMANDS = {
+  help: function () {
+    say("available commands", "hint");
+    say("  ls          list every link");
+    say("  open <name> open one of them");
+    say("  join        join the society");
+    say("  whoami      what we read off your device");
+    say("  neofetch    the same, with a logo, like a proper flex");
+    say("  date        local time");
+    say("  breach      run the intrusion again");
+    say("  clear       wipe this output");
+    say("missing something? tell an exec and it gets added.", "hint");
+  },
+
+  ls: function () {
+    LINKS.forEach(function (l) {
+      if (l.href) say("  " + l.cmd.padEnd(12) + l.href);
+      else say("  " + l.cmd.padEnd(12) + "not wired up yet", "hint");
+    });
+    if (JOIN_URL) say("  " + "join".padEnd(12) + JOIN_URL);
+  },
+
+  open: function (arg) {
+    if (!arg) { say("open what? try: open instagram", "err"); return; }
+    const hit = LINKS.find(function (l) { return l.cmd === arg.toLowerCase(); });
+    if (!hit) { say("no link called " + arg + ". try ls", "err"); return; }
+    if (!hit.href) { say(arg + " is not wired up yet. soon.", "hint"); return; }
+    say("opening " + arg + " ...");
+    window.open(hit.href, "_blank", "noopener");
+  },
+
+  join: function () {
+    if (!JOIN_URL) { say("the join form is not up yet. soon.", "hint"); return; }
+    say("opening the join form ...");
+    window.open(JOIN_URL, "_blank", "noopener");
+  },
+
+  whoami: function () {
+    if (!lastProbe) { say("nothing read yet. run: breach", "hint"); return; }
+    lastProbe.forEach(function (r) {
+      if (r.section) say("[ " + r.section + " ]", "hint");
+      else say("  " + (r.k + " ").padEnd(11, ".") + " " + r.v);
+    });
+  },
+
+  neofetch: function () {
+    if (!lastProbe) { say("nothing read yet. run: breach", "hint"); return; }
+    const art = (innerWidth >= 900 ? BIG_ART : SMALL_ART).slice();
+    const facts = ["visitor@knust-css", "-----------------"];
+    lastProbe.forEach(function (r) {
+      if (!r.section) facts.push(r.k + ": " + r.v);
+    });
+    let pad = 0;
+    art.forEach(function (a) { if (a.length > pad) pad = a.length; });
+    pad += 2;
+    const lines = Math.max(art.length, facts.length);
+    for (let i = 0; i < lines; i++) {
+      say((art[i] || "").padEnd(pad) + (facts[i] || ""), "art");
+    }
+  },
+
+  date: function () { say("  " + new Date().toString()); },
+
+  breach: function () { shellOut.innerHTML = ""; play(); },
+
+  clear: function () { shellOut.innerHTML = ""; },
+
+  sudo: function (arg) {
+    if (/rm\s+-rf/.test(arg || "")) { say("nice try. this is a link tree.", "err"); return; }
+    say("visitor is not in the sudoers file. this incident has been reported.", "err");
+  },
+
+  echo: function (arg) { say("  " + (arg || "")); },
+
+  exit: function () { say("there is no exit. only more coursework.", "hint"); },
+
+  coffee: function () { say("  brewing ... error 418: i am a teapot", "err"); },
+
+  hack: function () { say("we already did. scroll up.", "hint"); },
+};
+
+const ALIASES = { links: "ls", man: "help", cls: "clear", who: "whoami" };
+
+function runCommand(raw) {
+  const line = raw.trim();
+
+  const echoed = document.createElement("div");
+  echoed.className = "said";
+  const label = document.createElement("b");
+  label.textContent = "visitor@knust-css:~$ ";
+  echoed.appendChild(label);
+  echoed.appendChild(document.createTextNode(line));
+  shellOut.appendChild(echoed);
+
+  if (!line) { shellOut.scrollTop = shellOut.scrollHeight; return; }
+
+  cmdHistory.unshift(line);
+  histIdx = -1;
+
+  const parts = line.split(/\s+/);
+  const head = parts.shift();
+  const key = ALIASES[head.toLowerCase()] || head.toLowerCase();
+  const fn = COMMANDS[key];
+
+  if (fn) { fn(parts.join(" ")); beep(1180, 0.02); }
+  else {
+    say("command not found: " + head, "err");
+    const near = Object.keys(COMMANDS).find(function (c) { return c[0] === head[0].toLowerCase(); });
+    if (near) say("did you mean " + near + "?", "hint");
+  }
+  shellOut.scrollTop = shellOut.scrollHeight;
+}
+
+shellForm.addEventListener("submit", function (e) {
+  e.preventDefault();
+  runCommand(shellInput.value);
+  shellInput.value = "";
+});
+
+shellInput.addEventListener("keydown", function (e) {
+  // The breach skip handler listens on window; typing must not reach it.
+  e.stopPropagation();
+
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    if (histIdx < cmdHistory.length - 1) shellInput.value = cmdHistory[++histIdx];
+  } else if (e.key === "ArrowDown") {
+    e.preventDefault();
+    if (histIdx > 0) shellInput.value = cmdHistory[--histIdx];
+    else { histIdx = -1; shellInput.value = ""; }
+  } else if (e.key === "Tab") {
+    e.preventDefault();
+    const part = shellInput.value.trim().toLowerCase();
+    const hit = Object.keys(COMMANDS).find(function (c) { return c.indexOf(part) === 0; });
+    if (part && hit) shellInput.value = hit + " ";
+  }
+});
+
 /* --- Wiring --------------------------------------------------------------- */
 
 function skip() { aborted = true; }
@@ -1257,14 +1650,16 @@ $("skipBtn").addEventListener("click", (e) => { e.stopPropagation(); skip(); });
 breach.addEventListener("click", skip);
 window.addEventListener("keydown", () => { if (breach.classList.contains("live")) skip(); });
 
-$("gateBtn").addEventListener("click", () => { audioUp(); runBreach(); });
+$("gateBtn").addEventListener("click", () => { audioUp(); play(); });
 
 $("replayBtn").addEventListener("click", () => {
   clearTimeout(ambientTimer);
   audioUp();
   window.scrollTo(0, 0);
-  runBreach();
+  play();
 });
+
+startRain();
 
 if (reduced || !window.gsap) {
   gate.style.display = "none";
