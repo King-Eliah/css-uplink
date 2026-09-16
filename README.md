@@ -28,11 +28,24 @@ honestly marked as not ready yet.
 
 Commit and push; GitHub Pages redeploys on its own.
 
-## Notes
+## What the breach reads
 
-- Nothing is fetched about the visitor. Everything the breach prints is what
-  the browser hands to any site: screen size, timezone, GPU string, language.
-  No permission prompts, no camera, no location.
+Three blocks, all of it routinely available to any website:
+
+- **hardware** — handset model (via Client Hints on Android), OS, core count,
+  RAM, GPU string, screen size and measured refresh rate, battery, and the
+  storage quota the browser offers the page.
+- **network** — city, country, coarse coordinates, ASN and a masked IP. These
+  come from `api/whoami.js`, an edge function that simply reads back the geo
+  headers Vercel already attaches to the request. No third-party IP lookup,
+  no API key, no rate limit, and the address is never handed to anyone else.
+- **habits** — browser, locale, timezone, dark-mode preference, local time.
+
+Nothing is stored, logged or sent anywhere. The last octet of the IP is
+masked so a screenshot can be shared safely. No permission prompts are ever
+raised: no camera, no microphone, no geolocation API.
+
+## Notes
 - Audio is synthesised with the Web Audio API and can be muted top-right.
   The choice is remembered.
 - `prefers-reduced-motion` skips the whole sequence and lands on the links.

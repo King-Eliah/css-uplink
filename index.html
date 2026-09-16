@@ -951,10 +951,43 @@ soundBtn.addEventListener("click", () => {
    no camera, no location — that is the whole joke.
    =========================================================================== */
 
+/** Screen refresh rate, sampled over half a second. Started early so it is
+    ready by the time the dump reaches it. */
+function sampleHz() {
+  return new Promise((resolve) => {
+    let frames = 0;
+    const t0 = performance.now();
+    const tick = (t) => {
+      frames++;
+      if (t - t0 < 520) requestAnimationFrame(tick);
+      else resolve(Math.round(frames / ((t - t0) / 1000)));
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+let hzPromise = null;
+
+/** Ask our own edge function what the network knows. Never a third party. */
+async function whoami() {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch("/api/whoami", { signal: ctrl.signal, cache: "no-store" });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;   // local file, offline, or blocked. The lines just redact.
+  }
+}
+
 async function probe() {
   const nav = navigator;
-  const out = [];
-  const push = (k, v) => out.push([k, v == null || v === "" ? "[redacted]" : String(v)]);
+  const rows = [];
+  const push = (k, v) => rows.push({ k, v: v == null || v === "" ? "[redacted]" : String(v) });
+  const section = (name) => rows.push({ section: name });
+
   const ua = nav.userAgent;
 
   const brand =
@@ -965,46 +998,89 @@ async function probe() {
     /Safari\//.test(ua) ? "Safari" : "Unknown";
   const ver = (ua.match(/(?:Edg|OPR|Firefox|Chrome|Version)\/(\d+)/) || [])[1];
 
-  const os =
+  let os =
     /Android/.test(ua) ? "Android" :
-    /iPhone|iPad|iPod/.test(ua) ? "iOS" :
+    /iPhone/.test(ua) ? "iOS" :
+    /iPad/.test(ua) ? "iPadOS" :
     /Windows/.test(ua) ? "Windows" :
     /Mac OS X/.test(ua) ? "macOS" :
     /Linux/.test(ua) ? "Linux" : (nav.platform || "Unknown");
 
-  push("host", os + (nav.hardwareConcurrency ? "  /  " + nav.hardwareConcurrency + " cores" : ""));
-  push("client", brand + (ver ? " " + ver : ""));
-  push("display", screen.width + " x " + screen.height + "  @" + (window.devicePixelRatio || 1) + "x");
+  // Client Hints name the actual handset on Android — the single most
+  // unsettling line in the whole dump.
+  let model = null;
+  try {
+    if (nav.userAgentData && nav.userAgentData.getHighEntropyValues) {
+      const hv = await nav.userAgentData.getHighEntropyValues(
+        ["model", "platformVersion", "architecture"]);
+      if (hv.model) model = hv.model;
+      if (hv.platformVersion) os += " " + String(hv.platformVersion).split(".")[0];
+    }
+  } catch (e) {}
+  if (!model) {
+    if (/iPhone/.test(ua)) model = "iPhone";
+    else if (/iPad/.test(ua)) model = "iPad";
+  }
+
+  section("hardware");
+  push("device", model || "[unnamed]");
+  push("system", os);
+  push("cpu", nav.hardwareConcurrency ? nav.hardwareConcurrency + " logical cores" : "[redacted]");
   push("memory", nav.deviceMemory ? "~" + nav.deviceMemory + " GB" : "[redacted]");
-  push("locale", nav.language);
 
-  let tz = "[redacted]";
-  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
-  push("timezone", tz);
-
-  const c = nav.connection || nav.mozConnection || nav.webkitConnection;
-  push("uplink", c ? (c.effectiveType || "?") + (c.downlink ? "  /  " + c.downlink + " Mbps" : "") : "[redacted]");
-
-  let gpu = "[redacted]";
+  let gpu = null;
   try {
     const cv = document.createElement("canvas");
     const gl = cv.getContext("webgl") || cv.getContext("experimental-webgl");
     const dbg = gl && gl.getExtension("WEBGL_debug_renderer_info");
     if (dbg) gpu = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
   } catch (e) {}
-  push("gpu", String(gpu).replace(/^ANGLE \(/, "").slice(0, 38));
+  push("gpu", gpu ? String(gpu).replace(/^ANGLE \(/, "").replace(/\)$/, "").slice(0, 36) : "[redacted]");
 
-  push("touch", nav.maxTouchPoints > 0 ? "yes  /  " + nav.maxTouchPoints + " points" : "no");
+  let hz = null;
+  try { hz = await (hzPromise || sampleHz()); } catch (e) {}
+  push("screen", screen.width + " x " + screen.height + " @" + (window.devicePixelRatio || 1) + "x"
+    + (hz ? "  " + hz + "Hz" : ""));
+  push("input", nav.maxTouchPoints > 0 ? "touch, " + nav.maxTouchPoints + " points" : "keyboard + pointer");
 
   try {
     if (nav.getBattery) {
       const b = await nav.getBattery();
-      push("power", Math.round(b.level * 100) + "%  " + (b.charging ? "charging" : "discharging"));
+      push("power", Math.round(b.level * 100) + "%, " + (b.charging ? "charging" : "on battery"));
     }
   } catch (e) {}
 
+  try {
+    if (nav.storage && nav.storage.estimate) {
+      const est = await nav.storage.estimate();
+      if (est.quota) push("storage", "~" + (est.quota / 1073741824).toFixed(1) + " GB open to this page");
+    }
+  } catch (e) {}
+
+  section("network");
+  const net = await whoami();
+  const place = net && net.city
+    ? net.city + (net.country ? ", " + net.country : "")
+    : null;
+  push("address", net && net.ip ? net.ip : "[redacted]");
+  push("located", place);
+  push("coords", net && net.lat ? net.lat + ", " + net.lon : "[redacted]");
+  push("carrier", net && net.asn ? "AS" + net.asn : "[redacted]");
+
+  const c = nav.connection || nav.mozConnection || nav.webkitConnection;
+  push("link", c ? (c.effectiveType || "?") + (c.downlink ? ", " + c.downlink + " Mbps" : "") : "[redacted]");
+
+  section("habits");
+  push("browser", brand + (ver ? " " + ver : ""));
+  push("locale", nav.language + (nav.languages && nav.languages.length > 1
+    ? " (+" + (nav.languages.length - 1) + " more)" : ""));
+  let tz = null;
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
+  push("timezone", tz);
+  push("prefers", window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark mode" : "light mode");
   push("localtime", new Date().toLocaleTimeString());
-  return out;
+
+  return rows;
 }
 
 /* ===========================================================================
@@ -1069,6 +1145,7 @@ async function runBreach() {
 
   audioUp();
   droneStart();
+  hzPromise = sampleHz();
   gsap.to($("skipBtn"), { opacity: 1, duration: 0.4, delay: 0.9 });
 
   await type(addLine("dim"), "> establishing uplink from garment ....", 14);
@@ -1095,10 +1172,14 @@ async function runBreach() {
 
   await type(addLine("dim"), "> target acquired. dumping:", 12);
   const rows = await probe();
-  for (const [k, v] of rows) {
+  for (const row of rows) {
     if (aborted) break;
+    if (row.section) {
+      await type(addLine("warn"), "  [ " + row.section + " ]", 10);
+      continue;
+    }
     const el = addLine("ok");
-    await type(el, "  " + (k + " ").padEnd(11, ".") + " " + v, 7);
+    await type(el, "  " + (row.k + " ").padEnd(11, ".") + " " + row.v, 6);
     beep(1250 + Math.random() * 350, 0.022);
   }
 
