@@ -1200,12 +1200,16 @@ function addLine(cls) {
 }
 
 async function type(el, text, speed = 16, click = true) {
-  for (let i = 0; i <= text.length; i++) {
+  // Browsers clamp setTimeout to about 4ms, so one character per tick sets a
+  // floor under the whole sequence. Fast lines reveal a few at a time.
+  const stride = speed <= 4 ? 3 : 1;
+  for (let i = 0; i <= text.length; i += stride) {
     if (aborted) { el.textContent = text; return; }
     el.textContent = text.slice(0, i);
-    if (click && i % 2 === 0) blip();
+    if (click && i % 6 === 0) blip();
     await wait(speed);
   }
+  el.textContent = text;
   consoleEl.scrollTop = consoleEl.scrollHeight;
 }
 
@@ -1306,7 +1310,7 @@ async function runBreach() {
   consoleEl.appendChild(relax);
   await type(relax, "RELAX.", 60, false);
   await type(addLine("dim"),
-    "  every website you open already sees all of that.\n  we just made it theatrical.", 11);
+    "  every website you open already sees all of that.\n  your address rides along with every request you\n  have ever made. we just read it back to you.", 8);
   await wait(700);
 }
 
